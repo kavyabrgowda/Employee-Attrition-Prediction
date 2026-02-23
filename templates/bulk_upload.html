@@ -1,0 +1,52 @@
+{% extends "base.html" %} {% block content %}
+
+<div class="page-header">
+    <h2>Bulk Attrition Risk Analysis</h2>
+    <p>Upload employee dataset to identify high-risk employees</p>
+</div>
+
+<div class="upload-card">
+
+    <form action="/bulk_predict" method="POST" enctype="multipart/form-data">
+
+        <label class="upload-label">
+            Upload CSV File
+        </label>
+
+        <input type="file" name="file" accept=".csv" required>
+
+        <p class="note">
+            File must contain all required columns: Age, MaritalStatus, DistanceFromHome, Department, JobRole, BusinessTravel, JobSatisfaction, YearsAtCompany, YearsSinceLastPromotion, MonthlyIncome
+        </p>
+
+        <button type="submit" class="primary-btn">
+            Upload & Analyze
+        </button>
+
+    </form>
+
+</div>
+
+<div class="info-section">
+    <h4>What happens next?</h4>
+    <ul>
+        <li>✔ Model evaluates each employee</li>
+        <li>✔ Risk level assigned (Low / Medium / High)</li>
+        <li>✔ Downloadable CSV generated</li>
+        <li>✔ HR can proactively intervene</li>
+    </ul>
+</div>
+
+<br>
+
+<div style="text-align:center;">
+    <a href="/analyze" class="secondary-btn">
+        Analyze Downloaded Prediction CSV
+    </a>
+</div>
+
+<div class="back-link">
+    <a href="/">⬅ Back to Dashboard</a>
+</div>
+
+{% endblock %}

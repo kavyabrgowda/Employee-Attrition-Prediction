@@ -1,0 +1,61 @@
+{% extends "base.html" %} {% block content %}
+
+<div class="dashboard-container">
+
+    <div class="dashboard-title">
+        <h2>Executive HR Analytics Dashboard</h2>
+        <p>Employee Retention Intelligence – DSPristine</p>
+    </div>
+
+    <div class="cards">
+
+        <div class="card">
+            <h3>Total Employees</h3>
+            <p>{{ metrics.total }}</p>
+        </div>
+
+        <div class="card high">
+            <h3>High Risk %</h3>
+            <p>{{ metrics.risk_percent }}%</p>
+        </div>
+
+        <div class="card">
+            <h3>High Risk Count</h3>
+            <p>{{ metrics.high }}</p>
+        </div>
+
+        <div class="card">
+            <h3>Medium Risk</h3>
+            <p>{{ metrics.medium }}</p>
+        </div>
+
+        <div class="card">
+            <h3>Low Risk</h3>
+            <p>{{ metrics.low }}</p>
+        </div>
+
+        <div class="card">
+            <h3>Avg Income</h3>
+            <p>₹{{ metrics.avg_income }}</p>
+        </div>
+
+        <div class="card">
+            <h3>Avg Satisfaction</h3>
+            <p>{{ metrics.avg_satisfaction }}</p>
+        </div>
+
+        <div class="card">
+            <h3>Avg Tenure</h3>
+            <p>{{ metrics.avg_tenure }} yrs</p>
+        </div>
+
+    </div>
+
+    <div class="dashboard-buttons">
+        <a href="/single" class="primary-btn">Single Prediction</a>
+        <a href="/bulk" class="secondary-btn">Bulk Upload</a>
+    </div>
+
+</div>
+
+{% endblock %}

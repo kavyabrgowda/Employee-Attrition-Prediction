@@ -1,0 +1,70 @@
+{% extends "base.html" %} {% block content %}
+
+<div class="page-header">
+    <h2>Employee Attrition Risk Assessment</h2>
+    <p>Analyze individual employee retention probability</p>
+</div>
+
+<form action="/predict" method="POST" class="form-grid">
+
+    <div class="section-title">Demographics</div>
+
+    <input type="number" name="Age" placeholder="Age" required>
+
+    <select name="MaritalStatus" required>
+        <option value="">Marital Status</option>
+        <option>Single</option>
+        <option>Married</option>
+        <option>Divorced</option>
+    </select>
+
+    <input type="number" name="DistanceFromHome" placeholder="Distance From Home (KM)" required>
+
+    <div class="section-title">Job Role Information</div>
+
+    <select name="Department" required>
+        <option value="">Department</option>
+        <option>Sales</option>
+        <option>HR</option>
+        <option>R&D</option>
+        <option>Finance</option>
+        <option>IT</option>
+    </select>
+
+    <select name="JobRole" required>
+        <option value="">Job Role</option>
+        <option>Manager</option>
+        <option>Executive</option>
+        <option>Analyst</option>
+        <option>Engineer</option>
+        <option>Clerk</option>
+    </select>
+
+    <select name="BusinessTravel" required>
+        <option value="">Business Travel</option>
+        <option>Travel_Rarely</option>
+        <option>Travel_Frequently</option>
+        <option>Non-Travel</option>
+    </select>
+
+    <div class="section-title">Performance & Compensation</div>
+
+    <input type="number" name="JobSatisfaction" placeholder="Job Satisfaction (1-4)" required>
+
+    <input type="number" name="YearsAtCompany" placeholder="Years At Company" required>
+
+    <input type="number" name="YearsSinceLastPromotion" placeholder="Years Since Last Promotion" required>
+
+    <input type="number" name="MonthlyIncome" placeholder="Monthly Income (₹)" required>
+
+    <button type="submit" class="primary-btn">
+        Predict Attrition Risk
+    </button>
+
+</form>
+
+<div class="back-link">
+    <a href="/">⬅ Back to Dashboard</a>
+</div>
+
+{% endblock %}

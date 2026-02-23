@@ -1,0 +1,303 @@
+{% extends "base.html" %} {% block content %}
+
+<style>
+    /* Page Header */
+    
+    .page-header {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+    
+    .page-header h2 {
+        font-weight: 600;
+    }
+    /* Upload Card */
+    
+    .upload-card {
+        background: white;
+        padding: 30px;
+        border-radius: 12px;
+        box-shadow: 0px 8px 25px rgba(0, 0, 0, 0.08);
+        text-align: center;
+        margin-bottom: 30px;
+    }
+    
+    .primary-btn {
+        background: #2a9d8f;
+        color: white;
+        padding: 10px 25px;
+        border: none;
+        border-radius: 6px;
+        font-weight: 500;
+        cursor: pointer;
+    }
+    
+    .primary-btn:hover {
+        background: #21867a;
+    }
+    /* Summary Cards */
+    
+    .cards {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+        margin-bottom: 30px;
+    }
+    
+    .card {
+        flex: 1;
+        min-width: 200px;
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.05);
+        text-align: center;
+    }
+    
+    .card h4 {
+        font-size: 14px;
+        color: gray;
+    }
+    
+    .card p {
+        font-size: 20px;
+        font-weight: 600;
+    }
+    /* Dropdown Button */
+    
+    .dropdown-btn {
+        width: 100%;
+        background: #264653;
+        color: white;
+        padding: 12px;
+        border: none;
+        border-radius: 8px;
+        text-align: left;
+        font-size: 16px;
+        cursor: pointer;
+        margin-top: 20px;
+    }
+    
+    .dropdown-btn:hover {
+        background: #1b343e;
+    }
+    /* Hidden Content */
+    
+    .dropdown-content {
+        display: none;
+        margin-top: 15px;
+    }
+    /* Table Styling */
+    
+    .table-container {
+        overflow-x: auto;
+    }
+    
+    .professional-table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.05);
+    }
+    
+    .professional-table th {
+        background: #01060c;
+        padding: 12px;
+        font-size: 14px;
+    }
+    
+    .professional-table td {
+        padding: 10px;
+        text-align: center;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .professional-table tr:hover {
+        background: #f9f9f9;
+    }
+    /* Risk Badge */
+    
+    .risk-badge {
+        padding: 4px 10px;
+        border-radius: 20px;
+        color: white;
+        font-size: 12px;
+    }
+    
+    .high {
+        background: #e63946;
+    }
+    
+    .medium {
+        background: #f4a261;
+    }
+    
+    .low {
+        background: #2a9d8f;
+    }
+</style>
+
+
+<div class="page-header">
+    <h2>Analyze Prediction CSV</h2>
+    <p>Upload previously generated prediction file</p>
+</div>
+
+<div class="upload-card">
+    <form action="/analyze_csv" method="POST" enctype="multipart/form-data">
+        <input type="file" name="file" accept=".csv" required>
+        <br><br>
+        <button type="submit" class="primary-btn">
+            Analyze File
+        </button>
+    </form>
+</div>
+
+{% if show_results %}
+
+<hr>
+
+<h3>Attrition Risk Summary</h3>
+
+<div class="cards">
+    <div class="card">
+        <h4>Total Employees</h4>
+        <p>{{ total }}</p>
+    </div>
+
+    <div class="card">
+        <h4>High Risk</h4>
+        <p style="color:#e63946">{{ high }}</p>
+    </div>
+
+    <div class="card">
+        <h4>High Risk %</h4>
+        <p style="color:#e63946">{{ high_percent }}%</p>
+    </div>
+
+</div>
+
+<!-- HIGH RISK -->
+<button class="dropdown-btn" onclick="toggleTable('highTable')">
+    ▼ Top 20 High-Risk Employees
+</button>
+
+<div id="highTable" class="dropdown-content">
+    <div class="table-container">
+        <table class="professional-table">
+            <thead>
+                <tr>
+                    <th>Employee ID</th>
+                    <th>Age</th>
+                    <th>Department</th>
+                    <th>Job Role</th>
+                    <th>Years At Company</th>
+                    <th>Monthly Income</th>
+                    <th>Risk Level</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for emp in top_high %}
+                <tr>
+                    <td>{{ emp["EmployeeID"] }}</td>
+                    <td>{{ emp["Age"] }}</td>
+                    <td>{{ emp["Department"] }}</td>
+                    <td>{{ emp["JobRole"] }}</td>
+                    <td>{{ emp["YearsAtCompany"] }}</td>
+                    <td>₹{{ emp["MonthlyIncome"] }}</td>
+                    <td><span class="risk-badge high">{{ emp["Risk"] }}</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- MEDIUM RISK -->
+<button class="dropdown-btn" onclick="toggleTable('mediumTable')">
+    ▼ Top 20 Medium-Risk Employees
+</button>
+
+<div id="mediumTable" class="dropdown-content">
+    <div class="table-container">
+        <table class="professional-table">
+            <thead>
+                <tr>
+                    <th>Employee ID</th>
+                    <th>Age</th>
+                    <th>Department</th>
+                    <th>Job Role</th>
+                    <th>Years At Company</th>
+                    <th>Monthly Income</th>
+                    <th>Risk Level</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for emp in top_medium %}
+                <tr>
+                    <td>{{ emp["EmployeeID"] }}</td>
+                    <td>{{ emp["Age"] }}</td>
+                    <td>{{ emp["Department"] }}</td>
+                    <td>{{ emp["JobRole"] }}</td>
+                    <td>{{ emp["YearsAtCompany"] }}</td>
+                    <td>₹{{ emp["MonthlyIncome"] }}</td>
+                    <td><span class="risk-badge medium">{{ emp["Risk"] }}</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- LOW RISK -->
+<button class="dropdown-btn" onclick="toggleTable('lowTable')">
+    ▼ Top 20 Low-Risk Employees
+</button>
+
+<div id="lowTable" class="dropdown-content">
+    <div class="table-container">
+        <table class="professional-table">
+            <thead>
+                <tr>
+                    <th>Employee ID</th>
+                    <th>Age</th>
+                    <th>Department</th>
+                    <th>Job Role</th>
+                    <th>Years At Company</th>
+                    <th>Monthly Income</th>
+                    <th>Risk Level</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for emp in top_low %}
+                <tr>
+                    <td>{{ emp["EmployeeID"] }}</td>
+                    <td>{{ emp["Age"] }}</td>
+                    <td>{{ emp["Department"] }}</td>
+                    <td>{{ emp["JobRole"] }}</td>
+                    <td>{{ emp["YearsAtCompany"] }}</td>
+                    <td>₹{{ emp["MonthlyIncome"] }}</td>
+                    <td><span class="risk-badge low">{{ emp["Risk"] }}</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endif %}
+
+<script>
+    function toggleTable(id) {
+        var element = document.getElementById(id);
+        if (element.style.display === "block") {
+            element.style.display = "none";
+        } else {
+            element.style.display = "block";
+        }
+    }
+</script>
+
+<a href="/">⬅ Back to Dashboard</a> {% endblock %}

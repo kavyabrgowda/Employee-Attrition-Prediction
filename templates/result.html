@@ -1,0 +1,66 @@
+{% extends "base.html" %} {% block content %}
+
+<div class="result-container">
+
+    <div class="result-box {{ color }}">
+
+        <h2>{{ risk }}</h2>
+
+        <div class="progress-bar">
+            <div class="progress-fill {{ color }}" style="--width: {{ probability }}%;">
+                {{ probability }}%
+            </div>
+        </div>
+
+        <!-- Side-by-side Tables -->
+        <div class="tables-container">
+
+            <!-- Risk Drivers Table -->
+            <div class="table-box">
+                <h3>Key Risk Drivers</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Factors Affecting Attrition</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for d in drivers %}
+                        <tr>
+                            <td>{{ d }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- HR Recommendation Table -->
+            <div class="table-box">
+                <h3>HR Recommendation</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Suggested Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in recommendation %}
+                        <tr>
+                            <td>{{ r }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+
+        <a href="/single" class="primary-btn">
+            Analyze Another Employee
+        </a>
+
+    </div>
+
+</div>
+
+{% endblock %}
