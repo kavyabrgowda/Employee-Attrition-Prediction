@@ -1,39 +1,103 @@
 import pandas as pd
 import joblib
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import LabelEncoder, StandardScaler
-from sklearn.linear_model import LogisticRegression
 
+from sklearn.model_selection import train_test_split
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.impute import SimpleImputer
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, classification_report
+from sklearn.ensemble import RandomForestClassifier
+
+# =========================
+# LOAD DATA
+# =========================
 df = pd.read_csv("data/employee_data.csv")
 
-label_encoders = {}
+# Drop ID
+df = df.drop(columns=["Employee_ID"], errors="ignore")
 
-for col in df.select_dtypes(include="object").columns:
-    le = LabelEncoder()
-    df[col] = le.fit_transform(df[col])
-    label_encoders[col] = le
-
+# =========================
+# SPLIT FEATURES & TARGET
+# =========================
 X = df.drop("Attrition", axis=1)
 y = df["Attrition"]
 
-feature_columns = X.columns.tolist()
-joblib.dump(feature_columns, "models/feature_columns.pkl")
+# =========================
+# COLUMN TYPES
+# =========================
+cat_cols = X.select_dtypes(include="object").columns
+num_cols = X.select_dtypes(exclude="object").columns
 
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=42
+# =========================
+# PREPROCESSING PIPELINE
+# =========================
+preprocess = ColumnTransformer(
+    transformers=[
+        ("num", SimpleImputer(strategy="median"), num_cols),
+        ("cat", Pipeline(steps=[
+            ("imputer", SimpleImputer(strategy="most_frequent")),
+            ("encoder", OneHotEncoder(handle_unknown="ignore"))
+        ]), cat_cols)
+    ]
 )
 
-scaler = StandardScaler()
-X_train = scaler.fit_transform(X_train)
-X_test = scaler.transform(X_test)
+# =========================
+# MODEL (IMPROVED)
+# =========================
+model = RandomForestClassifier(
+    n_estimators=600,
+    max_depth=20,
+    min_samples_split=4,
+    min_samples_leaf=2,
+    class_weight="balanced",
+    random_state=42,
+    n_jobs=-1
+)
 
-model = LogisticRegression(max_iter=1000)
-model.fit(X_train, y_train)
+# =========================
+# PIPELINE
+# =========================
+clf = Pipeline([
+    ("preprocess", preprocess),
+    ("model", model)
+])
 
-print("Model Accuracy:", model.score(X_test, y_test))
+# =========================
+# SPLIT (IMPORTANT: STRATIFY)
+# =========================
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y,
+    test_size=0.2,
+    random_state=42,
+    stratify=y
+)
 
-joblib.dump(model, "models/model.pkl")
-joblib.dump(scaler, "models/scaler.pkl")
-joblib.dump(label_encoders, "models/label_encoders.pkl")
+# =========================
+# TRAIN
+# =========================
+clf.fit(X_train, y_train)
 
-print(" Model trained and feature columns saved")
+# =========================
+# PREDICT
+# =========================
+y_pred = clf.predict(X_test)
+
+# =========================
+# EVALUATION
+# =========================
+print("\n================ FINAL RESULTS ================\n")
+print("Accuracy :", accuracy_score(y_test, y_pred))
+print("Precision:", precision_score(y_test, y_pred))
+print("Recall   :", recall_score(y_test, y_pred))
+print("F1 Score :", f1_score(y_test, y_pred))
+
+print("\nClassification Report:\n")
+print(classification_report(y_test, y_pred))
+
+# =========================
+# SAVE MODEL
+# =========================
+joblib.dump(clf, "models/model.pkl")
+
+print("\n✅ MODEL TRAINED & SAVED SUCCESSFULLY")

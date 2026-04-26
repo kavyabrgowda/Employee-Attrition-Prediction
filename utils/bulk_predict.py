@@ -1,31 +1,92 @@
-import joblib
 import pandas as pd
-from utils.preprocessing import preprocess_input
+import joblib
+import os
+
+model = joblib.load("models/model.pkl")
 
 def bulk_predict(df):
 
-    model = joblib.load("models/model.pkl")
+    df = df.copy()
 
-    predictions = []
-    probabilities = []
+    # =========================
+    # CLEAN EMPLOYEE ID
+    # =========================
+    df["Employee_ID"] = df["Employee_ID"].astype(str).str.strip().str.upper()
 
-    for _, row in df.iterrows():
-        processed = preprocess_input(row.to_dict())
-        prob = model.predict_proba(processed)[0][1]
+    # =========================
+    # FEATURES
+    # =========================
+    X = df.drop(columns=["Employee_ID", "Attrition"], errors="ignore")
 
-        probabilities.append(round(prob * 100, 2))
+    # =========================
+    # PREDICTION
+    # =========================
+    predictions = model.predict(X)
+    probabilities = model.predict_proba(X)[:, 1]
 
-        if prob > 0.6:
-            predictions.append("High Risk")
-        elif prob > 0.4:
-            predictions.append("Medium Risk")
-        else:
-            predictions.append("Low Risk")
+    # =========================
+    # ADD RESULTS
+    # =========================
+    df["Attrition_Predicted"] = predictions
+    df["Probability"] = (probabilities * 100).round(2)
 
-    df["Attrition Probability (%)"] = probabilities
-    df["Risk"] = predictions
+    df["Risk"] = df["Probability"].apply(
+        lambda x: "High Risk" if x > 60 else
+                  "Medium Risk" if x > 40 else
+                  "Low Risk"
+    )
 
-    output_path = "data/bulk_predictions.csv"
-    df.to_csv(output_path, index=False)
+    # =========================
+    # FINAL COLUMNS ONLY (YOUR REQUIREMENT)
+    # =========================
+    final_cols = [
+        "Employee_ID",
+        "Age",
+        "Department",
+        "JobRole",
+        "MonthlyIncome",
+        "YearsAtCompany",
+        "YearsSinceLastPromotion",
+        "JobSatisfaction",
+        "Performance_Rating",
+        "Work_Life_Balance",
+        "Probability",
+        "Risk"
+    ]
 
-    return output_path
+    df = df[[col for col in final_cols if col in df.columns]]
+
+    # Rename for UI
+    df.rename(columns={"Employee_ID": "EmployeeID"}, inplace=True)
+
+    # =========================
+    # CREATE FOLDER
+    # =========================
+    os.makedirs("result_data", exist_ok=True)
+
+    # =========================
+    # SPLIT DATA
+    # =========================
+    high_df = df[df["Risk"] == "High Risk"]
+    medium_df = df[df["Risk"] == "Medium Risk"]
+    low_df = df[df["Risk"] == "Low Risk"]
+
+    # SORT (IMPORTANT)
+    high_df = high_df.sort_values("Probability", ascending=False)
+    medium_df = medium_df.sort_values("Probability", ascending=False)
+    low_df = low_df.sort_values("Probability", ascending=False)
+
+    # =========================
+    # SAVE FILES
+    # =========================
+    full_path = "result_data/bulk_predictions.csv"
+    high_path = "result_data/high_risk.csv"
+    medium_path = "result_data/medium_risk.csv"
+    low_path = "result_data/low_risk.csv"
+
+    df.to_csv(full_path, index=False)
+    high_df.to_csv(high_path, index=False)
+    medium_df.to_csv(medium_path, index=False)
+    low_df.to_csv(low_path, index=False)
+
+    return full_path

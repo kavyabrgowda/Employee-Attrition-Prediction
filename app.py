@@ -1,86 +1,107 @@
 from flask import Flask, render_template, request, redirect, send_file
 import pandas as pd
 import joblib
-from utils.preprocessing import preprocess_input
+import os
+from flask import send_file
+
 from utils.bulk_predict import bulk_predict
 from utils.metrics import dashboard_metrics
 
-
 app = Flask(__name__)
 
+# =========================
+# LOAD MODEL (PIPELINE MODEL)
+# =========================
 model = joblib.load("models/model.pkl")
 
+
+# ---------------- DASHBOARD ----------------
 @app.route("/")
 def dashboard():
     metrics = dashboard_metrics("data/employee_data.csv")
     return render_template("dashboard.html", metrics=metrics)
 
-@app.route("/single")
+
+# ---------------- SINGLE EMPLOYEE ----------------
+@app.route("/single", methods=["GET", "POST"])
 def single():
+
+    if request.method == "POST":
+
+        emp_id = request.form["Employee_ID"].strip().upper()
+
+        df = pd.read_csv("data/employee_data.csv")
+        df["Employee_ID"] = df["Employee_ID"].astype(str).str.strip().str.upper()
+
+        row = df[df["Employee_ID"] == emp_id]
+
+        if row.empty:
+            return render_template("single_predict.html", error="Employee not found")
+
+        data = row.iloc[0].to_dict()
+
+        # DROP ID BEFORE PREDICTION (VERY IMPORTANT)
+        input_df = pd.DataFrame([data]).drop(columns=["Employee_ID", "Attrition"], errors="ignore")
+
+        prob = model.predict_proba(input_df)[0][1]
+
+        # Risk classification
+        if prob > 0.6:
+            risk = "High Risk"
+            color = "high"
+        elif prob > 0.4:
+            risk = "Medium Risk"
+            color = "medium"
+        else:
+            risk = "Low Risk"
+            color = "low"
+
+        # =========================
+        # DRIVER ANALYSIS (IMPROVED)
+        # =========================
+        drivers = []
+
+        if data["JobSatisfaction"] <= 2:
+            drivers.append("Low Job Satisfaction")
+
+        if data["YearsSinceLastPromotion"] > 3:
+            drivers.append("No Promotion in 3+ Years")
+
+        if data["BusinessTravel"] == "Travel_Frequently":
+            drivers.append("Frequent Travel Load")
+
+        if data["MonthlyIncome"] < 40000:
+            drivers.append("Below Market Salary")
+
+        if data["Work_Life_Balance"] <= 2:
+            drivers.append("Poor Work-Life Balance")
+
+        recommendation = [
+            "Schedule HR one-on-one discussion",
+            "Offer career growth plan",
+            "Improve engagement & recognition programs",
+            "Review compensation structure"
+        ]
+
+        return render_template(
+            "result.html",
+            employee_id=emp_id,
+            probability=round(prob * 100, 2),
+            risk=risk,
+            color=color,
+            drivers=drivers,
+            recommendation=recommendation,
+            details=data
+        )
+
     return render_template("single_predict.html")
 
-@app.route("/predict", methods=["POST"])
-def predict():
 
-    input_data = dict(request.form)
-    processed = preprocess_input(input_data)
-
-    probability = model.predict_proba(processed)[0][1]
-    probability_percent = int(round(probability * 100))
-
-    # Risk classification
-    if probability > 0.6:
-        risk = "High Risk"
-        color = "high"
-        recommendation = [
-            "Schedule retention discussion",
-            "Review compensation structure",
-            "Discuss career growth opportunities"
-        ]
-    elif probability > 0.4:
-        risk = "Medium Risk"
-        color = "medium"
-        recommendation = [
-            "Monitor employee engagement",
-            "Offer skill development program",
-            "Check workload balance"
-        ]
-    else:
-        risk = "Low Risk"
-        color = "low"
-        recommendation = [
-            "Maintain engagement",
-            "Recognize performance",
-            "Continue career progression support"
-        ]
-
-    # Example key drivers (simple rule-based explanation)
-    drivers = []
-
-    if int(input_data["JobSatisfaction"]) <= 2:
-        drivers.append("Low Job Satisfaction")
-
-    if int(input_data["YearsSinceLastPromotion"]) > 3:
-        drivers.append("No Promotion in 3+ Years")
-
-    if input_data["BusinessTravel"] == "Travel_Frequently":
-        drivers.append("Frequent Business Travel")
-
-    if int(input_data["MonthlyIncome"]) < 40000:
-        drivers.append("Below Market Salary")
-
-    return render_template(
-        "result.html",
-        probability=probability_percent,
-        risk=risk,
-        color=color,
-        drivers=drivers,
-        recommendation=recommendation
-    )
-
+# ---------------- BULK UPLOAD ----------------
 @app.route("/bulk")
 def bulk():
     return render_template("bulk_upload.html")
+
 
 @app.route("/bulk_predict", methods=["POST"])
 def bulk_upload():
@@ -90,6 +111,8 @@ def bulk_upload():
     result_file = bulk_predict(df)
     return send_file(result_file, as_attachment=True)
 
+
+# ---------------- ANALYZE CSV ----------------
 @app.route("/analyze")
 def analyze_page():
     return render_template("analyze.html", show_results=False)
@@ -105,9 +128,15 @@ def analyze_csv():
 
     df = pd.read_csv(file)
 
-    if "Risk" not in df.columns:
-        return "Invalid File. Please upload prediction CSV."
+    if "Risk" not in df.columns or "Probability" not in df.columns:
+        return "Invalid File. Missing Risk or Probability column"
 
+    # convert safely
+    df["Probability"] = pd.to_numeric(df["Probability"], errors="coerce")
+
+    # =========================
+    # COUNTS
+    # =========================
     high = (df["Risk"] == "High Risk").sum()
     medium = (df["Risk"] == "Medium Risk").sum()
     low = (df["Risk"] == "Low Risk").sum()
@@ -115,22 +144,17 @@ def analyze_csv():
     total = len(df)
     high_percent = round((high / total) * 100, 2)
 
-    # Top 20 High
-    top_high = df[df["Risk"] == "High Risk"].head(20).copy()
-    top_high.insert(0, "EmployeeID",
-                    ["EMP" + str(i).zfill(4) for i in range(1, len(top_high)+1)])
+    # =========================
+    # SORTED TOP 20 (IMPORTANT FIX)
+    # =========================
+    top_high = df[df["Risk"] == "High Risk"] \
+        .sort_values("Probability", ascending=False).head(20)
 
-    # Top 20 Medium
-    top_medium = df[df["Risk"] == "Medium Risk"].head(20).copy()
-    top_medium.insert(0, "EmployeeID",
-                      ["EMP" + str(i).zfill(4) for i in range(1, len(top_medium)+1)])
+    top_medium = df[df["Risk"] == "Medium Risk"] \
+        .sort_values("Probability", ascending=False).head(20)
 
-    # Top 20 Low
-    top_low = df[df["Risk"] == "Low Risk"].head(20).copy()
-    top_low.insert(0, "EmployeeID",
-                   ["EMP" + str(i).zfill(4) for i in range(1, len(top_low)+1)])
-
-    avg_income_high = df[df["Risk"] == "High Risk"]["MonthlyIncome"].mean()
+    top_low = df[df["Risk"] == "Low Risk"] \
+        .sort_values("Probability", ascending=False).head(20)
 
     return render_template(
         "analyze.html",
@@ -140,11 +164,37 @@ def analyze_csv():
         low=low,
         total=total,
         high_percent=high_percent,
-        avg_income_high=round(avg_income_high, 2) if not pd.isna(avg_income_high) else 0,
-        top_high=top_high.to_dict(orient="records"),
-        top_medium=top_medium.to_dict(orient="records"),
-        top_low=top_low.to_dict(orient="records")
+        top_high=top_high.to_dict("records"),
+        top_medium=top_medium.to_dict("records"),
+        top_low=top_low.to_dict("records")
     )
 
+
+
+# =========================
+# DOWNLOAD HIGH RISK
+# =========================
+@app.route("/download_high")
+def download_high():
+    file_path = "result_data/high_risk.csv"
+    return send_file(file_path, as_attachment=True)
+
+# =========================
+# DOWNLOAD MEDIUM RISK
+# =========================
+@app.route("/download_medium")
+def download_medium():
+    file_path = "result_data/medium_risk.csv"
+    return send_file(file_path, as_attachment=True)
+
+# =========================
+# DOWNLOAD LOW RISK
+# =========================
+@app.route("/download_low")
+def download_low():
+    file_path = "result_data/low_risk.csv"
+    return send_file(file_path, as_attachment=True)
+
+
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=10000)

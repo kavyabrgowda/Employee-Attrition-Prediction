@@ -5,12 +5,7 @@ def get_top_features():
 
     model = joblib.load("models/model.pkl")
 
-    features = [
-        "Age", "MaritalStatus", "DistanceFromHome",
-        "Department", "JobRole", "BusinessTravel",
-        "JobSatisfaction", "YearsAtCompany",
-        "YearsSinceLastPromotion", "MonthlyIncome"
-    ]
+    features = joblib.load("models/feature_columns.pkl")
 
     importance = model.coef_[0]
 

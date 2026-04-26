@@ -4,26 +4,32 @@
 
     <div class="result-box {{ color }}">
 
-        <h2>{{ risk }}</h2>
+        <h2>Employee ID: {{ employee_id }}</h2>
+        <h3>{{ risk }}</h3>
 
-        <div class="progress-bar">
-            <div class="progress-fill {{ color }}" style="--width: {{ probability }}%;">
-                {{ probability }}%
-            </div>
+        <p><b>Attrition Probability:</b> {{ probability }}%</p>
+
+        <!-- EMPLOYEE DETAILS -->
+        <div class="table-box">
+            <h3>Employee Details</h3>
+            <table class="professional-table">
+                <tbody>
+                    {% for key, value in details.items() %}
+                    <tr>
+                        <td><b>{{ key }}</b></td>
+                        <td>{{ value }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
 
-        <!-- Side-by-side Tables -->
+        <!-- DRIVERS + RECOMMENDATION -->
         <div class="tables-container">
 
-            <!-- Risk Drivers Table -->
             <div class="table-box">
-                <h3>Key Risk Drivers</h3>
+                <h3>Risk Drivers</h3>
                 <table>
-                    <thead>
-                        <tr>
-                            <th>Factors Affecting Attrition</th>
-                        </tr>
-                    </thead>
                     <tbody>
                         {% for d in drivers %}
                         <tr>
@@ -34,15 +40,9 @@
                 </table>
             </div>
 
-            <!-- HR Recommendation Table -->
             <div class="table-box">
-                <h3>HR Recommendation</h3>
+                <h3>HR Recommendations</h3>
                 <table>
-                    <thead>
-                        <tr>
-                            <th>Suggested Actions</th>
-                        </tr>
-                    </thead>
                     <tbody>
                         {% for r in recommendation %}
                         <tr>
