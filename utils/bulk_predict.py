@@ -8,25 +8,17 @@ def bulk_predict(df):
 
     df = df.copy()
 
-    # =========================
-    # CLEAN EMPLOYEE ID
-    # =========================
+
     df["Employee_ID"] = df["Employee_ID"].astype(str).str.strip().str.upper()
 
-    # =========================
-    # FEATURES
-    # =========================
+
     X = df.drop(columns=["Employee_ID", "Attrition"], errors="ignore")
 
-    # =========================
-    # PREDICTION
-    # =========================
+
     predictions = model.predict(X)
     probabilities = model.predict_proba(X)[:, 1]
 
-    # =========================
-    # ADD RESULTS
-    # =========================
+
     df["Attrition_Predicted"] = predictions
     df["Probability"] = (probabilities * 100).round(2)
 
@@ -36,9 +28,7 @@ def bulk_predict(df):
                   "Low Risk"
     )
 
-    # =========================
-    # FINAL COLUMNS ONLY (YOUR REQUIREMENT)
-    # =========================
+
     final_cols = [
         "Employee_ID",
         "Age",
@@ -56,29 +46,21 @@ def bulk_predict(df):
 
     df = df[[col for col in final_cols if col in df.columns]]
 
-    # Rename for UI
     df.rename(columns={"Employee_ID": "EmployeeID"}, inplace=True)
 
-    # =========================
-    # CREATE FOLDER
-    # =========================
+
     os.makedirs("result_data", exist_ok=True)
 
-    # =========================
-    # SPLIT DATA
-    # =========================
+
     high_df = df[df["Risk"] == "High Risk"]
     medium_df = df[df["Risk"] == "Medium Risk"]
     low_df = df[df["Risk"] == "Low Risk"]
 
-    # SORT (IMPORTANT)
     high_df = high_df.sort_values("Probability", ascending=False)
     medium_df = medium_df.sort_values("Probability", ascending=False)
     low_df = low_df.sort_values("Probability", ascending=False)
 
-    # =========================
-    # SAVE FILES
-    # =========================
+
     full_path = "result_data/bulk_predictions.csv"
     high_path = "result_data/high_risk.csv"
     medium_path = "result_data/medium_risk.csv"

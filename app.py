@@ -9,20 +9,15 @@ from utils.metrics import dashboard_metrics
 
 app = Flask(__name__)
 
-# =========================
-# LOAD MODEL (PIPELINE MODEL)
-# =========================
 model = joblib.load("models/model.pkl")
 
 
-# ---------------- DASHBOARD ----------------
 @app.route("/")
 def dashboard():
     metrics = dashboard_metrics("data/employee_data.csv")
     return render_template("dashboard.html", metrics=metrics)
 
 
-# ---------------- SINGLE EMPLOYEE ----------------
 @app.route("/single", methods=["GET", "POST"])
 def single():
 
@@ -40,12 +35,10 @@ def single():
 
         data = row.iloc[0].to_dict()
 
-        # DROP ID BEFORE PREDICTION (VERY IMPORTANT)
         input_df = pd.DataFrame([data]).drop(columns=["Employee_ID", "Attrition"], errors="ignore")
 
         prob = model.predict_proba(input_df)[0][1]
 
-        # Risk classification
         if prob > 0.6:
             risk = "High Risk"
             color = "high"
@@ -56,9 +49,7 @@ def single():
             risk = "Low Risk"
             color = "low"
 
-        # =========================
-        # DRIVER ANALYSIS (IMPROVED)
-        # =========================
+
         drivers = []
 
         if data["JobSatisfaction"] <= 2:
@@ -97,7 +88,6 @@ def single():
     return render_template("single_predict.html")
 
 
-# ---------------- BULK UPLOAD ----------------
 @app.route("/bulk")
 def bulk():
     return render_template("bulk_upload.html")
@@ -112,7 +102,6 @@ def bulk_upload():
     return send_file(result_file, as_attachment=True)
 
 
-# ---------------- ANALYZE CSV ----------------
 @app.route("/analyze")
 def analyze_page():
     return render_template("analyze.html", show_results=False)
@@ -134,9 +123,7 @@ def analyze_csv():
     # convert safely
     df["Probability"] = pd.to_numeric(df["Probability"], errors="coerce")
 
-    # =========================
-    # COUNTS
-    # =========================
+
     high = (df["Risk"] == "High Risk").sum()
     medium = (df["Risk"] == "Medium Risk").sum()
     low = (df["Risk"] == "Low Risk").sum()
@@ -144,9 +131,6 @@ def analyze_csv():
     total = len(df)
     high_percent = round((high / total) * 100, 2)
 
-    # =========================
-    # SORTED TOP 20 (IMPORTANT FIX)
-    # =========================
     top_high = df[df["Risk"] == "High Risk"] \
         .sort_values("Probability", ascending=False).head(20)
 
@@ -171,32 +155,23 @@ def analyze_csv():
 
 
 
-# =========================
-# DOWNLOAD HIGH RISK
-# =========================
+
 @app.route("/download_high")
 def download_high():
     file_path = "result_data/high_risk.csv"
     return send_file(file_path, as_attachment=True)
 
-# =========================
-# DOWNLOAD MEDIUM RISK
-# =========================
+
 @app.route("/download_medium")
 def download_medium():
     file_path = "result_data/medium_risk.csv"
     return send_file(file_path, as_attachment=True)
 
-# =========================
-# DOWNLOAD LOW RISK
-# =========================
+
 @app.route("/download_low")
 def download_low():
     file_path = "result_data/low_risk.csv"
     return send_file(file_path, as_attachment=True)
 
-import os
-
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(debug=True)
